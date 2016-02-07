@@ -29,6 +29,7 @@ import java.util.Map;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.mutable.MutableObject;
+import org.apache.commons.lang3.reflect.MethodUtilsTest.TestBean;
 
 /**
  * Unit tests ConstructorUtils
@@ -229,6 +230,36 @@ public class ConstructorUtilsTest {
                 .getParameterTypes()));
     }
 
+    // --------------------
+    // Fuzzy matching tests
+    
+    @Test
+    public void testInvokeConstructorFuzzy()  throws Exception {
+    	// Existing tests for strict matching must work
+    	assertEquals("()", ConstructorUtils.invokeConstructorFuzzy(TestBean.class,
+                (Object[]) ArrayUtils.EMPTY_CLASS_ARRAY).toString());
+        assertEquals("()", ConstructorUtils.invokeConstructorFuzzy(TestBean.class,
+                (Object[]) null).toString());
+        assertEquals("()", ConstructorUtils.invokeConstructorFuzzy(TestBean.class).toString());
+        assertEquals("(String)", ConstructorUtils.invokeConstructorFuzzy(
+                TestBean.class, "").toString());
+        assertEquals("(Object)", ConstructorUtils.invokeConstructorFuzzy(
+                TestBean.class, new Object()).toString());
+        assertEquals("(Object)", ConstructorUtils.invokeConstructorFuzzy(
+                TestBean.class, Boolean.TRUE).toString());
+        assertEquals("(Integer)", ConstructorUtils.invokeConstructorFuzzy(
+                TestBean.class, NumberUtils.INTEGER_ONE).toString());
+        assertEquals("(int)", ConstructorUtils.invokeConstructorFuzzy(
+                TestBean.class, NumberUtils.BYTE_ONE).toString());
+        assertEquals("(double)", ConstructorUtils.invokeConstructorFuzzy(
+                TestBean.class, NumberUtils.LONG_ONE).toString());
+        assertEquals("(double)", ConstructorUtils.invokeConstructorFuzzy(
+                TestBean.class, NumberUtils.DOUBLE_ONE).toString());
+    }
+    
+    // Fuzzy matching tests
+    // --------------------
+    
     private String toString(final Class<?>[] c) {
         return Arrays.asList(c).toString();
     }

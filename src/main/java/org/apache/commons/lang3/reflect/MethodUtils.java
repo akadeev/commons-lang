@@ -697,7 +697,7 @@ public class MethodUtils {
         return bestMatch;
     }
 
-    private static Object[] castArgumentsForMethodFuzzy(Class<?>[] classArray, Class<?>[] toClassArray, Object[] objs) {
+    public static Object[] castArgumentsForMethodFuzzy(Class<?>[] classArray, Class<?>[] toClassArray, Object[] objs) {
     	int length = objs.length;
     	Object[] result = new Object[length];
     	for (int i = 0; i < length; i++) {
