@@ -124,6 +124,68 @@ public class MethodUtilsTest {
         public void oneParameter(final String s) {
             // empty
         }
+        
+        // -----------------------------------------
+        // Additional methods for fuzzy matching test
+
+        public static String barPC(final char i) {
+            return "bar(char)";
+        }
+        
+        public static String barPB(final byte i) {
+            return "bar(byte)";
+        }
+        
+        public static String barPS(final short i) {
+            return "bar(short)";
+        }
+        
+        public static String barPI(final int i) {
+            return "bar(int)";
+        }
+        
+        public static String barPL(final long i) {
+            return "bar(long)";
+        }
+        
+        public static String barPF(final float i) {
+            return "bar(float)";
+        }
+        
+        public static String barPD(final double i) {
+            return "bar(double)";
+        }
+        
+        public static String barBC(final Character i) {
+            return "bar(Character)";
+        }
+        
+        public static String barBB(final Byte i) {
+            return "bar(Byte)";
+        }
+        
+        public static String barBS(final Short i) {
+            return "bar(Short)";
+        }
+        
+        public static String barBI(final Integer i) {
+            return "bar(Integer)";
+        }
+        
+        public static String barBL(final Long i) {
+            return "bar(Long)";
+        }
+        
+        public static String barBF(final Float i) {
+            return "bar(Float)";
+        }
+        
+        public static String barBD(final Double i) {
+            return "bar(Double)";
+        }
+        
+        // Additional methods for fuzzy matching test
+        // -----------------------------------------
     }
 
     private static class TestMutable implements Mutable<Object> {
@@ -485,6 +547,57 @@ public class MethodUtilsTest {
     public void testGetMethodsListWithAnnotationIllegalArgumentException3() {
         MethodUtils.getMethodsListWithAnnotation(null, null);
     }
+    
+    // --------------------
+    // Fuzzy matching tests
+    
+    @Test
+    public void testInvokeMethodFuzzy()  throws Exception {
+    	// Existing tests for strict matching must work
+    	assertEquals("foo()", MethodUtils.invokeMethodFuzzy(testBean, "foo",
+                (Object[]) ArrayUtils.EMPTY_CLASS_ARRAY));
+        assertEquals("foo()", MethodUtils.invokeMethodFuzzy(testBean, "foo"));
+        assertEquals("foo()", MethodUtils.invokeMethodFuzzy(testBean, "foo",
+                (Object[]) null));
+        assertEquals("foo(String)", MethodUtils.invokeMethodFuzzy(testBean, "foo",
+                ""));
+        assertEquals("foo(Object)", MethodUtils.invokeMethodFuzzy(testBean, "foo",
+                new Object()));
+        assertEquals("foo(Object)", MethodUtils.invokeMethodFuzzy(testBean, "foo",
+                Boolean.TRUE));
+        assertEquals("foo(Integer)", MethodUtils.invokeMethodFuzzy(testBean, "foo",
+                NumberUtils.INTEGER_ONE));
+        assertEquals("foo(int)", MethodUtils.invokeMethodFuzzy(testBean, "foo",
+                NumberUtils.BYTE_ONE));
+        assertEquals("foo(double)", MethodUtils.invokeMethodFuzzy(testBean, "foo",
+                NumberUtils.LONG_ONE));
+        assertEquals("foo(double)", MethodUtils.invokeMethodFuzzy(testBean, "foo",
+                NumberUtils.DOUBLE_ONE));
+        
+        // New tests
+        assertEquals("bar(char)", MethodUtils.invokeMethodFuzzy(testBean, "barPC", "a"));
+        assertEquals("bar(byte)", MethodUtils.invokeMethodFuzzy(testBean, "barPB", 1.0));
+        assertEquals("bar(short)", MethodUtils.invokeMethodFuzzy(testBean, "barPS", -1000.0));
+        assertEquals("bar(int)", MethodUtils.invokeStaticMethodFuzzy(TestBean.class, "barPI", 100000.0));
+        assertEquals("bar(long)", MethodUtils.invokeMethodFuzzy(testBean, "barPL", -10000000000000.0));
+        assertEquals("bar(float)", MethodUtils.invokeStaticMethodFuzzy(TestBean.class, "barPF", 1.5));
+        assertEquals("bar(double)", MethodUtils.invokeMethodFuzzy(testBean, "barPD", 1.0 / 3));
+
+        assertEquals("bar(Character)", MethodUtils.invokeMethodFuzzy(testBean, "barBC", "a"));
+        assertEquals("bar(Byte)", MethodUtils.invokeStaticMethodFuzzy(TestBean.class, "barBB", 1.0));
+        assertEquals("bar(Short)", MethodUtils.invokeMethodFuzzy(testBean, "barBS", -1000.0));
+        assertEquals("bar(Integer)", MethodUtils.invokeMethodFuzzy(testBean, "barBI", 100000.0));
+        assertEquals("bar(Long)", MethodUtils.invokeStaticMethodFuzzy(TestBean.class, "barBL", -10000000000000.0));
+        assertEquals("bar(Float)", MethodUtils.invokeMethodFuzzy(testBean, "barBF", 1.5));
+        assertEquals("bar(Double)", MethodUtils.invokeMethodFuzzy(testBean, "barBD", 1.0 / 3));
+    }
+    
+    public void testInvokeStaticMethodFuzzy() {
+    	
+    }
+    
+    // Fuzzy matching tests
+    // --------------------
     
     private void expectMatchingAccessibleMethodParameterTypes(final Class<?> cls,
             final String methodName, final Class<?>[] requestTypes, final Class<?>[] actualTypes) {

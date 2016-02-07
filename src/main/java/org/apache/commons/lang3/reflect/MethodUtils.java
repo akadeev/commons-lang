@@ -635,4 +635,193 @@ public class MethodUtils {
         return annotatedMethods;
     }
 
+    // --------------
+    // Fuzzy matching
+    
+    public static Object invokeMethodFuzzy(final Object object, final String methodName, Object... args)
+            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        args = ArrayUtils.nullToEmpty(args);
+        final Class<?>[] parameterTypes = ClassUtils.toClass(args);
+        final Method method = getMatchingAccessibleMethodFuzzy(object.getClass(),
+                methodName, parameterTypes, args);
+        if (method == null) {
+            throw new NoSuchMethodException("No such accessible method: "
+                    + methodName + "() on object: "
+                    + object.getClass().getName());
+        }
+        args = castArgumentsForMethodFuzzy(parameterTypes, method.getParameterTypes(), args);
+        return method.invoke(object, args);
+    }
+
+    public static Object invokeStaticMethodFuzzy(final Class<?> cls, final String methodName, Object... args)
+            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        args = ArrayUtils.nullToEmpty(args);
+        final Class<?>[] parameterTypes = ClassUtils.toClass(args);
+        final Method method = getMatchingAccessibleMethodFuzzy(cls, methodName,
+                parameterTypes, args);
+        if (method == null) {
+            throw new NoSuchMethodException("No such accessible method: "
+                    + methodName + "() on class: " + cls.getName());
+        }
+        args = castArgumentsForMethodFuzzy(parameterTypes, method.getParameterTypes(), args);
+        return method.invoke(null, args);
+    }
+
+	public static Method getMatchingAccessibleMethodFuzzy(final Class<?> cls,
+            final String methodName, final Class<?>[] parameterTypes, Object[] args) {
+        try {
+            final Method method = cls.getMethod(methodName, parameterTypes);
+            MemberUtils.setAccessibleWorkaround(method);
+            return method;
+        } catch (final NoSuchMethodException e) { // NOPMD - Swallow the exception
+        }
+        // search through all methods
+        Method bestMatch = null;
+        final Method[] methods = cls.getMethods();
+        for (final Method method : methods) {
+            // compare name and parameters
+            if (method.getName().equals(methodName) && isAssignableFuzzy(parameterTypes, method.getParameterTypes(), args)) {
+                // get accessible version of method
+                final Method accessibleMethod = getAccessibleMethod(method);
+                if (accessibleMethod != null && (bestMatch == null || MemberUtils.compareParameterTypes(
+                            accessibleMethod.getParameterTypes(),
+                            bestMatch.getParameterTypes(),
+                            parameterTypes) < 0)) {
+                        bestMatch = accessibleMethod;
+                 }
+            }
+        }
+        if (bestMatch != null) {
+            MemberUtils.setAccessibleWorkaround(bestMatch);
+        }
+        return bestMatch;
+    }
+
+    private static Object[] castArgumentsForMethodFuzzy(Class<?>[] classArray, Class<?>[] toClassArray, Object[] objs) {
+    	int length = objs.length;
+    	Object[] result = new Object[length];
+    	for (int i = 0; i < length; i++) {
+    		result[i] = castObject(classArray[i], toClassArray[i], objs[i]);
+    	}
+		return result;
+	}
+
+	public static boolean isAssignableFuzzy(Class<?>[] classArray, Class<?>[] toClassArray, Object[] objs) {
+        if (ArrayUtils.isSameLength(classArray, toClassArray) == false) {
+            return false;
+        }
+        if (classArray == null) {
+            classArray = ArrayUtils.EMPTY_CLASS_ARRAY;
+        }
+        if (toClassArray == null) {
+            toClassArray = ArrayUtils.EMPTY_CLASS_ARRAY;
+        }
+        for (int i = 0; i < classArray.length; i++) {
+            if (isAssignableFuzzy(classArray[i], toClassArray[i], objs[i]) == false) {
+                return false;
+            }
+        }
+        return true;
+    }
+	
+	private static Object castObject(Class<?> cls, Class<?> toClass, Object object) {
+		// Perform strict match
+		if (ClassUtils.isAssignable(cls, toClass)) {
+			return object;
+		}
+		
+		// Consider JS specific conversion
+		// One symbol String can be interpreted as char
+        if (cls == String.class && ((String) object).length() == 1) {
+        	return ((String) object).charAt(0);
+        }
+        
+        // Every JS number wrapped and passed to Java as Double
+        if (object instanceof Double) {
+        	double d = (Double) object;
+        	if (toClass == Byte.class || toClass == Byte.TYPE) {
+        		byte val = (byte) d;
+        		if (((double) val) == d) {
+        			return val;
+        		}
+        	}
+        	if (toClass == Short.class || toClass == Short.TYPE) {
+        		short val = (short) d;
+        		if (val == d) {
+        			return val;
+        		}
+        	}
+        	if (toClass == Integer.class || toClass == Integer.TYPE) {
+        		int val = (int) d;
+        		if (val == d) {
+        			return val;
+        		}
+        	}
+        	if (toClass == Long.class || toClass == Long.TYPE) {
+        		long val = (long) d;
+        		if (val == d) {
+        			return val;
+        		}
+        	}
+        	if (toClass == Float.class || toClass == Float.TYPE) {
+        		float val = (float) d;
+        		if (val == d) {
+        			return val;
+        		}
+        	}
+        }
+		
+		return null;
+	}
+	
+	public static boolean isAssignableFuzzy(Class<?> cls, final Class<?> toClass, final Object object) {
+		// Perform strict match
+		if (ClassUtils.isAssignable(cls, toClass)) {
+			return true;
+		}
+        
+		// Consider JS specific conversion
+		// One symbol String can be interpreted as char
+		if (toClass == Character.class || toClass == Character.TYPE) {
+	        if (cls == String.class && ((String) object).length() == 1) {
+	        	return true;
+	        }
+		}
+        
+        // Every JS number wrapped and passed to Java as Double
+        if (object instanceof Double) {
+        	double d = (Double) object;
+    		// Cast it back and forth to make sure it fits well
+        	if (toClass == Byte.class || toClass == Byte.TYPE) {
+        		if (((double) ((byte) d)) == d) {
+        			return true;
+        		}
+        	}
+        	if (toClass == Short.class || toClass == Short.TYPE) {
+        		if (((double) ((short) d)) == d) {
+        			return true;
+        		}
+        	}
+        	if (toClass == Integer.class || toClass == Integer.TYPE) {
+        		if (((double) ((int) d)) == d) {
+        			return true;
+        		}
+        	}
+        	if (toClass == Long.class || toClass == Long.TYPE) {
+        		if (((double) ((long) d)) == d) {
+        			return true;
+        		}
+        	}
+        	if (toClass == Float.class || toClass == Float.TYPE) {
+        		if (((double) ((float) d)) == d) {
+        			return true;
+        		}
+        	}
+        }
+        
+        return false;
+    }
+
+    // Fuzzy matching
+    // --------------
 }
